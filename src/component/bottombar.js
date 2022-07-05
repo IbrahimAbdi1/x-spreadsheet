@@ -1,10 +1,14 @@
 import { h } from './element';
-import { bindClickoutside, unbindClickoutside } from './event';
+import { bindClickoutside, unbindClickoutside   ,bind,
+  mouseMoveUp,
+  bindTouch,
+  createEventEmitter,} from './event';
 import { cssPrefix } from '../config';
 import Icon from './icon';
 import FormInput from './form_input';
 import Dropdown from './dropdown';
-import { xtoast } from './message';
+// Record: temp not used
+// import { xtoast } from './message';
 import { tf } from '../locale/locale';
 
 class DropdownMore extends Dropdown {
@@ -83,6 +87,7 @@ export default class Bottombar {
     this.moreEl = new DropdownMore((i) => {
       this.clickSwap2(this.items[i]);
     });
+    this.eventMap = createEventEmitter();
     this.contextMenu = new ContextMenu();
     this.contextMenu.itemClick = deleteFunc;
     this.el = h('div', `${cssPrefix}-bottombar`).children(
@@ -98,16 +103,18 @@ export default class Bottombar {
     );
   }
 
-  addItem(name, active) {
+  addItem(name, active, options) {
     this.dataNames.push(name);
     const item = h('li', active ? 'active' : '').child(name);
     item.on('click', () => {
       this.clickSwap2(item);
     }).on('contextmenu', (evt) => {
+      if (options.mode === 'read') return;
       const { offsetLeft, offsetHeight } = evt.target;
       this.contextMenu.setOffset({ left: offsetLeft, bottom: offsetHeight + 1 });
       this.deleteEl = item;
     }).on('dblclick', () => {
+      if (options.mode === 'read') return;
       const v = item.html();
       const input = new FormInput('auto', '');
       input.val(v);
@@ -173,6 +180,7 @@ export default class Bottombar {
     this.clickSwap(item);
     this.activeEl.toggle();
     this.swapFunc(index);
+    this.trigger("bottom-shift")
   }
 
   clickSwap(item) {
@@ -187,5 +195,15 @@ export default class Bottombar {
       return this.items.findIndex(it=> it === this.activeEl);
     }
     return undefined;
+  }
+
+  on(eventName, func) {
+    this.eventMap.on(eventName, func);
+    return this;
+  }
+
+  trigger(eventName, ...args) {
+    const { eventMap } = this;
+    eventMap.fire(eventName, args);
   }
 }
